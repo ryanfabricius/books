@@ -6,6 +6,7 @@ material within the book, as well as serve as a very informative resource to loo
 Here is a list of the books in the repo:
 
 - Text Mining with R: A Tidy Approach, by Julia Silge
+- Neural Networks with R: Giuseppe Ciaburro
 - Machine Learning with R: Expert techniques for predictive modeling, 3rd Edition, by Brett Lantz
 
 If you are interested in looking at other materials i've used to learn, check out my documentation of the Rstudio webinars
