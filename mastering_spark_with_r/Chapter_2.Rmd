@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Chapter 2"
 output: html_document
 ---
 
@@ -37,12 +37,94 @@ spark_web(sc)
 ```
 
 ```{r}
+# Use SQL with Spark
+dbGetQuery(sc, "SELECT count(*) FROM mtcars")
+```
+
+```{r}
+# Use of dplyr with Spark
+library(dplyr)
+count(cars)
+```
+
+```{r}
+# Plotting from Spark
+select(cars, hp, mpg) %>% 
+        sample_n(100) %>% 
+        collect() %>% 
+        plot()
+```
+
+```{r}
+# Linear Regression Model
+model <- ml_linear_regression(cars, mpg ~ hp)
+model
+```
+
+```{r}
+# Visualize
+model %>%
+        ml_predict(copy_to(sc, data.frame(hp = 250 + 10 * 1:10))) %>%
+        transmute(hp = hp, mpg = prediction) %>%
+        full_join(select(cars, hp, mpg)) %>%
+        collect() %>%
+        plot()
+```
+
+```{r}
+# Work with nested data
+sparklyr.nested::sdf_nest(cars, hp) %>% 
+        group_by(cyl) %>% 
+        summarise(data = collect_list(data))
+```
+
+```{r}
+# Creating your own functions ONLY AS LAST RESORT
+cars %>% spark_apply(~round(.x))
+```
+
+```{r}
+# Streaming Data
+
+# Create input folder that will be used as the input for the stream
+dir.create("input/")
+write.csv(mtcars, "input/cars_1.csv", row.names = F)
+
+# Define a stream that processes incoming data from the input folder, performs transformation in R, and pushes output into output folder
+stream <- stream_read_csv(sc, "input/") %>% 
+        select(mpg, cyl, disp) %>% 
+        stream_write_csv("output/")
+```
+
+```{r}
+# CHeck contents of stream
+dir("output", pattern = ".csv")
+```
+
+```{r}
+# Add another file to input
+write.csv(mtcars, "input/cars_2.csv", row.names = F)
+```
+
+```{r}
+# Check contents of stream
+dir("output", pattern = ".csv")
+```
+
+```{r}
+# Stop the stream
+stream_stop(stream)
+```
+
+```{r}
+# View logs
+spark_log(sc, filter = "sparklyr")
+```
+
+```{r}
 # Disconnect from Spark
 spark_disconnect(sc)
 ```
-
-
-
 
 
 
