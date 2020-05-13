@@ -1,0 +1,147 @@
+---
+title: "Chapter 5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this example, we will build a neural network with the purpose of predicting the fuel consumption of the vehicles according to certain characteristics.
+
+Code used in this markdown differs from textbook. Pre-processing steps are taken care of through the use of newer tidyverse packages and functions that were not available when the textbook was written.
+
+```{r}
+# Load Libraries
+library(dplyr)
+library(rsample)
+library(neuralnet)
+library(ISLR)
+library(recipes)
+library(yardstick)
+library(ggplot2)
+```
+
+```{r}
+# Load Data
+data <- Auto
+
+# View Data
+str(data)
+```
+
+```{r}
+# Test/Train Split
+set.seed(12)
+data.split <- initial_split(data) # Split data into trainiing/testing
+
+data.train <- training(data.split) # Extract training dataset
+data.test <- testing(data.split) # Extract testing dataset
+```
+
+
+```{r}
+# Create Recipe
+auto.recipe <- recipe(mpg ~ .,
+                      data = data.train) %>% 
+  
+  # Remove predictors
+  step_rm(year, # Other predictors contain information on how vehicles changed 
+          origin, # Different origins tend to have different types of cars
+          name
+          ) %>% 
+  
+  # Normalize dataset
+  step_normalize(all_numeric()) %>% 
+
+  # Prepare recipe on training set
+  prep()
+```
+
+```{r}
+# Obtain preparred training data
+data.trained <- juice(auto.recipe)
+
+head(data.trained)
+```
+
+```{r}
+# Train NeuralNet
+nnet <- neuralnet(mpg ~ ., 
+                  data = data.trained,
+                  hidden = 3, # Number of neurons in the hidden layer
+                  linear.output = TRUE) # Denotes Regression
+
+# Inspect Model
+summary(nnet)
+```
+
+```{r}
+# Visualize model
+plot(nnet)
+```
+
+```{r}
+# Prepare testset
+test.prepared <- bake(auto.recipe, data.test)
+
+# Use model to predict on test set
+data.test$predicted <- as.numeric(
+  predict(nnet, test.prepared[,1:5]))
+
+# de-normalize data
+mean <- mean(data.train$mpg)
+sd <- min(data.train$mpg)
+
+data.test <- data.test %>% 
+  mutate(predicted_scaled_up = predicted*sd + mean)
+```
+
+```{r}
+# Calculate test metrics
+rsq(data = data.test,
+    truth = mpg,
+    estimate = predicted_scaled_up)
+
+mae(data = data.test,
+    truth = mpg,
+    estimate = predicted_scaled_up)
+```
+
+```{r}
+# Plot Results
+ggplot(data.test, aes(x = mpg,
+                      y = predicted_scaled_up)) +
+  geom_point() +
+  geom_abline(intercept = 0,
+              slope = 1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

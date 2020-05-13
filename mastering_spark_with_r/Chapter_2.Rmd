@@ -1,0 +1,55 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Install from Cran
+install.packages("sparklyr")
+```
+
+```{r}
+# Initiate a spark session
+library(sparklyr)
+
+# Install Spark
+spark_install("2.4")
+
+# Connect to local cluster
+sc <- spark_connect(master = "local", version = "2.4")
+```
+
+```{r}
+# Copy mtcars into Apache Spark
+cars <- copy_to(sc, mtcars)
+
+# Print from Spark
+cars
+```
+
+```{r}
+# Access web interface
+spark_web(sc)
+```
+
+```{r}
+# Disconnect from Spark
+spark_disconnect(sc)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

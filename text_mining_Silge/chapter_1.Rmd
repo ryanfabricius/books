@@ -1,0 +1,104 @@
+---
+title: "Chapter 1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load libraries
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(tidytext)
+library(stringr)
+library(janeaustenr)
+```
+
+### Creating Tidy Text
+
+```{r}
+# Set up initial text example
+text <- c("Because I could not stop for death -",
+          "He kindly stopped for me -",
+          "The Carriage held but just Ourselves -",
+          "and Immortality")
+text
+```
+
+```{r}
+# Convert text to a dataframe
+text.df <- tibble(line = 1:4, text = text)
+
+text.df
+```
+
+The tibble contains one line per row. A tidy text format would require the tibble to be arranged to have 1 token per row. 
+
+```{r}
+# Convert tibble to tidy format
+text.df %>% 
+  unnest_tokens(output = word, # column to be created
+                input = text) # inputted column
+```
+
+### Tidying the Works of Jane Austen
+
+```{r}
+# Load books
+original.books <- austen_books() %>% 
+  group_by(book) %>% 
+  mutate(linenumber = row_number(), # linenumber of book
+         chapter = cumsum(str_detect(text, # chapter of book
+                                     regex("^chapter [\\divxlc]",
+                                           ignore_case = TRUE)))) %>% 
+  ungroup(.)
+
+head(original.books)
+```
+
+```{r}
+# Convert from one line per row to one word per row
+tidy.books <- original.books %>% 
+  unnest_tokens(word, text)
+
+tidy.books
+```
+
+```{r}
+# Filter out the "stop words" that include "the", "of", "the", and so on
+
+# Load stop words
+data(stop_words)
+
+# Filter out stop words
+tidy.books <- tidy.books %>% 
+  anti_join(stop_words)
+```
+
+```{r}
+# Discover words used most thoughout the books
+tidy.books %>% 
+  count(word, sort = TRUE)
+```
+
+```{r}
+# Use ggplot2 to visualize
+tidy.books %>% 
+  count(word, sort = T) %>% 
+  filter(n > 600) %>% 
+  mutate(word = reorder(word, n)) %>% 
+  ggplot(., aes(word, n)) +
+  geom_col() + 
+  xlab(NULL) +
+  coord_flip()
+```
+
+
+
+
+
+
+
