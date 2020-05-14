@@ -1,0 +1,173 @@
+---
+title: "Chapter 3"
+author: "Ryan Fabricius"
+date: "5/14/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load Libraries
+library(dplyr)
+library(sparklyr)
+library(dbplot)
+library(corrr)
+library(ggplot2)
+```
+
+```{r}
+# Connect to Spark
+sc <- spark_connect(master = "local", version = "2.4")
+```
+
+```{r}
+# Prime Spark with mtcars dataset
+cars <- copy_to(sc, mtcars)
+```
+
+```{r}
+# Use dplyr > SQL
+summarise_all(cars, mean)
+```
+
+```{r}
+# Inspect SQL Query
+summarise_all(cars, mean) %>% 
+        show_query()
+```
+
+```{r}
+# Group by Transmission type
+cars %>%
+  mutate(transmission = ifelse(am == 0, "automatic", "manual")) %>%
+  group_by(transmission) %>%
+  summarise_all(mean)
+```
+
+When you want to perform an operation from dplyr that is not yet available in Spark, there is usually a Hive function within Spark to accomplish what you need.
+
+```{r}
+# Using a Hive function
+summarise(cars, mpg_percentile = percentile(mpg, 0.25))
+```
+
+```{r}
+# Visualize Query
+summarise(cars, mpg_percentile = percentile(mpg, 0.25)) %>% 
+        show_query()
+```
+
+```{r}
+# Passing Array of inputs
+summarise(cars, mpg_percentile = percentile(mpg, array(0.25, 0.5, 0.75)))
+```
+
+```{r}
+# Use explode function to seperate array values into their own record
+summarise(cars, mpg_percentile = percentile(mpg, array(0.25, 0.5, 0.75))) %>%
+  mutate(mpg_percentile = explode(mpg_percentile))
+```
+
+```{r}
+# Use correlation Spark functions
+correlate(cars, use = "pairwise.complete.obs", method = "pearson")
+```
+
+```{r}
+# Shave removes duplicated values
+correlate(cars, use = "pairwise.complete.obs", method = "pearson") %>% 
+        shave(., upper = T)
+```
+
+```{r}
+# Only bring in aggregated results to graph
+car_group <- cars %>%
+  group_by(cyl) %>%
+  summarise(mpg = sum(mpg, na.rm = TRUE)) %>%
+  collect() %>%
+  print()
+```
+
+```{r}
+# Graph aggregated results
+ggplot(aes(as.factor(cyl), mpg), data = car_group) + 
+  geom_col(fill = "#999999") + coord_flip()
+```
+
+The dbplot package provides helper functions for plotting with remote data. The R code dbplot that’s used to transform the data is written so that it can be translated into Spark. It then uses those results to create a graph using the ggplot2 package where data transformation and plotting are both triggered by a single function.
+
+```{r}
+# Plotting using dbplot
+dbplot_raster(cars, mpg, wt, resolution = 16)
+```
+
+```{r}
+# Disconnect from Spark
+spark_disconnect(sc)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
